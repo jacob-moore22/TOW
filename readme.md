@@ -62,7 +62,7 @@ nrf77/
 
 ## About MATAR
 
-[MATAR](https://github.com/lanl/MATAR) (Multi-dimensional Arrays, Tensors, And Ragged data structures) is a header-only C++ library that provides performance-portable multi-dimensional data structures, parallel loop macros, and reduction operations. MATAR supports CPU serial, OpenMP, Pthreads, CUDA, and HIP backends from a single source code — the developer writes to MATAR's API and the backend is selected at build time. Under the hood MATAR can use Kokkos for device execution, but user code interacts exclusively with MATAR types and macros.
+[MATAR](https://github.com/lanl/MATAR) (MATrix and ARray) is a header-only C++ library that provides performance-portable multi-dimensional data structures, parallel loop macros, and reduction operations. MATAR supports CPU serial, OpenMP, Pthreads, CUDA, and HIP backends from a single source code — the developer writes to MATAR's API and the backend is selected at build time. Under the hood MATAR can use Kokkos for device execution, but user code interacts exclusively with MATAR types and macros.
 
 ### Data Structure Taxonomy
 
@@ -156,7 +156,7 @@ Without a GPU backend, MATAR defaults to CPU execution (serial or OpenMP dependi
 export OMP_NUM_THREADS=8 && ./my_program
 
 # Threaded (HAVE_THREADS)
-./my_program --kokkos-threads=8
+./my_program 
 ```
 
 ## Original Sources
