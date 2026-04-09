@@ -10,6 +10,10 @@ fortran/*/*/[a-z]*
 fortran/build/
 fortran/libnrf77.a
 
+# CMake build directories
+build/
+build-*/
+
 # Python bytecode
 __pycache__/
 *.pyc
