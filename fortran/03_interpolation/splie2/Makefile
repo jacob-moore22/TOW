@@ -1,12 +1,15 @@
 FC      = gfortran
 FFLAGS  = -O2 -std=legacy -w -fno-automatic
-LIB     = ../../libnrf77.a
 
 PROG    = splie2
-SRC     = splie2.dem
+DRIVER  = splie2.dem
 
-$(PROG): $(SRC) $(LIB)
-	$(FC) $(FFLAGS) -x f77 $(SRC) -x none $(LIB) -o $@
+# Subroutine sources (transitive dependencies)
+DEPS    = splie2.f \
+          ../spline/spline.f
+
+$(PROG): $(DRIVER) $(DEPS)
+	$(FC) $(FFLAGS) -x f77 $(DRIVER) -x none $(DEPS) -o $@
 
 .PHONY: clean run
 clean:

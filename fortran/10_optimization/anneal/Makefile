@@ -1,12 +1,17 @@
 FC      = gfortran
 FFLAGS  = -O2 -std=legacy -w -fno-automatic
-LIB     = ../../libnrf77.a
 
 PROG    = anneal
-SRC     = anneal.dem
+DRIVER  = anneal.dem
 
-$(PROG): $(SRC) $(LIB)
-	$(FC) $(FFLAGS) -x f77 $(SRC) -x none $(LIB) -o $@
+# Subroutine sources (transitive dependencies)
+DEPS    = ../../07_random_numbers/irbit1/irbit1.f \
+          ../../07_random_numbers/ran3/ran3.f \
+          anneal.f \
+          ../link/link.f
+
+$(PROG): $(DRIVER) $(DEPS)
+	$(FC) $(FFLAGS) -x f77 $(DRIVER) -x none $(DEPS) -o $@
 
 .PHONY: clean run
 clean:

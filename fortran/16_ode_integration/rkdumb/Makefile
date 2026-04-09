@@ -1,12 +1,18 @@
 FC      = gfortran
 FFLAGS  = -O2 -std=legacy -w -fno-automatic
-LIB     = ../../libnrf77.a
 
 PROG    = rkdumb
-SRC     = rkdumb.dem
+DRIVER  = rkdumb.dem
 
-$(PROG): $(SRC) $(LIB)
-	$(FC) $(FFLAGS) -x f77 $(SRC) -x none $(LIB) -o $@
+# Subroutine sources (transitive dependencies)
+DEPS    = ../../06_special_functions/bessj/bessj.f \
+          ../../06_special_functions/bessj0/bessj0.f \
+          ../../06_special_functions/bessj1/bessj1.f \
+          ../rk4/rk4.f \
+          rkdumb.f
+
+$(PROG): $(DRIVER) $(DEPS)
+	$(FC) $(FFLAGS) -x f77 $(DRIVER) -x none $(DEPS) -o $@
 
 .PHONY: clean run
 clean:

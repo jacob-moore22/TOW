@@ -1,12 +1,19 @@
 FC      = gfortran
 FFLAGS  = -O2 -std=legacy -w -fno-automatic
-LIB     = ../../libnrf77.a
 
 PROG    = shootf
-SRC     = shootf.dem
+DRIVER  = shootf.dem
 
-$(PROG): $(SRC) $(LIB)
-	$(FC) $(FFLAGS) -x f77 $(SRC) -x none $(LIB) -o $@
+# Subroutine sources (transitive dependencies)
+DEPS    = ../../02_linear_algebra/lubksb/lubksb.f \
+          ../../02_linear_algebra/ludcmp/ludcmp.f \
+          ../../16_ode_integration/odeint/odeint.f \
+          ../../16_ode_integration/rk4/rk4.f \
+          ../../16_ode_integration/rkqc/rkqc.f \
+          shootf.f
+
+$(PROG): $(DRIVER) $(DEPS)
+	$(FC) $(FFLAGS) -x f77 $(DRIVER) -x none $(DEPS) -o $@
 
 .PHONY: clean run
 clean:

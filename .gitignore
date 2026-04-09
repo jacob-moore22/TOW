@@ -1,0 +1,15 @@
+# Compiled Fortran executables (one per example directory)
+fortran/*/*/[a-z]*
+!fortran/*/*/*.f
+!fortran/*/*/*.dem
+!fortran/*/*/*.DAT
+!fortran/*/*/Makefile
+!fortran/*/*/README.md
+
+# Legacy monolithic library (no longer used)
+fortran/build/
+fortran/libnrf77.a
+
+# Python bytecode
+__pycache__/
+*.pyc

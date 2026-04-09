@@ -1,12 +1,18 @@
 FC      = gfortran
 FFLAGS  = -O2 -std=legacy -w -fno-automatic
-LIB     = ../../libnrf77.a
 
 PROG    = smooft
-SRC     = smooft.dem
+DRIVER  = smooft.dem
 
-$(PROG): $(SRC) $(LIB)
-	$(FC) $(FFLAGS) -x f77 $(SRC) -x none $(LIB) -o $@
+# Subroutine sources (transitive dependencies)
+DEPS    = ../../07_random_numbers/gasdev/gasdev.f \
+          ../../07_random_numbers/ran1/ran1.f \
+          ../../12_fourier_transform/four1/four1.f \
+          ../../12_fourier_transform/realft/realft.f \
+          smooft.f
+
+$(PROG): $(DRIVER) $(DEPS)
+	$(FC) $(FFLAGS) -x f77 $(DRIVER) -x none $(DEPS) -o $@
 
 .PHONY: clean run
 clean:

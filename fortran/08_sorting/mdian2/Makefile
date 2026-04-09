@@ -1,12 +1,18 @@
 FC      = gfortran
 FFLAGS  = -O2 -std=legacy -w -fno-automatic
-LIB     = ../../libnrf77.a
 
 PROG    = mdian2
-SRC     = mdian2.dem
+DRIVER  = mdian2.dem
 
-$(PROG): $(SRC) $(LIB)
-	$(FC) $(FFLAGS) -x f77 $(SRC) -x none $(LIB) -o $@
+# Subroutine sources (transitive dependencies)
+DEPS    = ../../07_random_numbers/gasdev/gasdev.f \
+          ../../07_random_numbers/ran1/ran1.f \
+          ../mdian1/mdian1.f \
+          mdian2.f \
+          ../sort/sort.f
+
+$(PROG): $(DRIVER) $(DEPS)
+	$(FC) $(FFLAGS) -x f77 $(DRIVER) -x none $(DEPS) -o $@
 
 .PHONY: clean run
 clean:

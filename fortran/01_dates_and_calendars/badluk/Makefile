@@ -1,12 +1,15 @@
 FC      = gfortran
 FFLAGS  = -O2 -std=legacy -w -fno-automatic
-LIB     = ../../libnrf77.a
 
 PROG    = badluk
-SRC     = badluk.f
+DRIVER  = badluk.f
 
-$(PROG): $(SRC) $(LIB)
-	$(FC) $(FFLAGS) -o $@ $(SRC) $(LIB)
+# Subroutine sources (transitive dependencies)
+DEPS    = ../flmoon/flmoon.f \
+          ../julday/julday.f
+
+$(PROG): $(DRIVER) $(DEPS)
+	$(FC) $(FFLAGS) $(DRIVER) $(DEPS) -o $@
 
 .PHONY: clean run
 clean:

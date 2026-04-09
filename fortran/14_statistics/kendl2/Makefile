@@ -1,12 +1,17 @@
 FC      = gfortran
 FFLAGS  = -O2 -std=legacy -w -fno-automatic
-LIB     = ../../libnrf77.a
 
 PROG    = kendl2
-SRC     = kendl2.dem
+DRIVER  = kendl2.dem
 
-$(PROG): $(SRC) $(LIB)
-	$(FC) $(FFLAGS) -x f77 $(SRC) -x none $(LIB) -o $@
+# Subroutine sources (transitive dependencies)
+DEPS    = ../../06_special_functions/erfcc/erfcc.f \
+          ../../07_random_numbers/irbit1/irbit1.f \
+          ../../07_random_numbers/irbit2/irbit2.f \
+          kendl2.f
+
+$(PROG): $(DRIVER) $(DEPS)
+	$(FC) $(FFLAGS) -x f77 $(DRIVER) -x none $(DEPS) -o $@
 
 .PHONY: clean run
 clean:

@@ -1,12 +1,19 @@
 FC      = gfortran
 FFLAGS  = -O2 -std=legacy -w -fno-automatic
-LIB     = ../../libnrf77.a
 
 PROG    = mrqcof
-SRC     = mrqcof.dem
+DRIVER  = mrqcof.dem
 
-$(PROG): $(SRC) $(LIB)
-	$(FC) $(FFLAGS) -x f77 $(SRC) -x none $(LIB) -o $@
+# Subroutine sources (transitive dependencies)
+DEPS    = ../../06_special_functions/beta/beta.f \
+          ../../06_special_functions/gammln/gammln.f \
+          ../../07_random_numbers/gasdev/gasdev.f \
+          ../../07_random_numbers/ran1/ran1.f \
+          ../fgauss/fgauss.f \
+          mrqcof.f
+
+$(PROG): $(DRIVER) $(DEPS)
+	$(FC) $(FFLAGS) -x f77 $(DRIVER) -x none $(DEPS) -o $@
 
 .PHONY: clean run
 clean:

@@ -1,12 +1,20 @@
 FC      = gfortran
 FFLAGS  = -O2 -std=legacy -w -fno-automatic
-LIB     = ../../libnrf77.a
 
 PROG    = lfit
-SRC     = lfit.dem
+DRIVER  = lfit.dem
 
-$(PROG): $(SRC) $(LIB)
-	$(FC) $(FFLAGS) -x f77 $(SRC) -x none $(LIB) -o $@
+# Subroutine sources (transitive dependencies)
+DEPS    = ../../02_linear_algebra/gaussj/gaussj.f \
+          ../../06_special_functions/beta/beta.f \
+          ../../06_special_functions/gammln/gammln.f \
+          ../../07_random_numbers/gasdev/gasdev.f \
+          ../../07_random_numbers/ran1/ran1.f \
+          ../covsrt/covsrt.f \
+          lfit.f
+
+$(PROG): $(DRIVER) $(DEPS)
+	$(FC) $(FFLAGS) -x f77 $(DRIVER) -x none $(DEPS) -o $@
 
 .PHONY: clean run
 clean:

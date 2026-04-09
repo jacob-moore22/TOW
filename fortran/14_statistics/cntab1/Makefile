@@ -1,12 +1,18 @@
 FC      = gfortran
 FFLAGS  = -O2 -std=legacy -w -fno-automatic
-LIB     = ../../libnrf77.a
 
 PROG    = cntab1
-SRC     = cntab1.dem
+DRIVER  = cntab1.dem
 
-$(PROG): $(SRC) $(LIB)
-	$(FC) $(FFLAGS) -x f77 $(SRC) -x none $(LIB) -o $@
+# Subroutine sources (transitive dependencies)
+DEPS    = ../../06_special_functions/gammln/gammln.f \
+          ../../06_special_functions/gammq/gammq.f \
+          ../../06_special_functions/gcf/gcf.f \
+          ../../06_special_functions/gser/gser.f \
+          cntab1.f
+
+$(PROG): $(DRIVER) $(DEPS)
+	$(FC) $(FFLAGS) -x f77 $(DRIVER) -x none $(DEPS) -o $@
 
 .PHONY: clean run
 clean:

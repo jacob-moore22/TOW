@@ -1,52 +1,33 @@
-FC      = gfortran
-FFLAGS  = -O2 -std=legacy -w -fno-automatic
-AR      = ar
-ARFLAGS = rcs
-
-BUILDDIR = build
-
-# Every .f that defines a SUBROUTINE or FUNCTION (not PROGRAM) goes into the library.
-# badluk.f and sfroid.f contain PROGRAM and are excluded.
-LIB_SRCS := $(filter-out %/badluk.f %/sfroid.f, \
-               $(shell find . -path ./$(BUILDDIR) -prune -o -name '*.f' -print))
-LIB_OBJS := $(addprefix $(BUILDDIR)/, $(notdir $(LIB_SRCS:.f=.o)))
-
-VPATH := $(sort $(dir $(LIB_SRCS)))
-
-LIB = libnrf77.a
-
-# Discover all per-program Makefiles (depth 3: ./<chapter>/<prog>/Makefile)
 PROG_DIRS := $(sort $(shell find . -mindepth 3 -maxdepth 3 -name Makefile -exec dirname {} \;))
 
-# ── Targets ──────────────────────────────────────────────────────────────────
+.PHONY: all clean run
 
-.PHONY: all lib programs clean
-
-all: lib programs
-
-lib: $(LIB)
-
-$(LIB): $(LIB_OBJS)
-	$(AR) $(ARFLAGS) $@ $^
-
-$(BUILDDIR)/%.o: %.f | $(BUILDDIR)
-	$(FC) $(FFLAGS) -c -o $@ $<
-
-$(BUILDDIR):
-	mkdir -p $@
-
-programs: $(LIB)
-	@fail=0; \
+all:
+	@pass=0; fail=0; \
 	for d in $(PROG_DIRS); do \
-		$(MAKE) --no-print-directory -C $$d || fail=$$((fail+1)); \
+		if $(MAKE) --no-print-directory -C $$d 2>/dev/null; then \
+			pass=$$((pass+1)); \
+		else \
+			echo "FAIL: $$d"; \
+			fail=$$((fail+1)); \
+		fi; \
 	done; \
 	echo ""; \
-	if [ $$fail -gt 0 ]; then \
-		echo "*** $$fail program(s) failed to build ***"; \
-	else \
-		echo "All programs built successfully"; \
-	fi
+	echo "$$pass passed, $$fail failed out of $$((pass+fail)) programs"; \
+	if [ $$fail -gt 0 ]; then exit 1; fi
+
+run:
+	@pass=0; fail=0; \
+	for d in $(PROG_DIRS); do \
+		if $(MAKE) --no-print-directory -C $$d run 2>/dev/null; then \
+			pass=$$((pass+1)); \
+		else \
+			echo "FAIL: $$d"; \
+			fail=$$((fail+1)); \
+		fi; \
+	done; \
+	echo ""; \
+	echo "$$pass passed, $$fail failed out of $$((pass+fail)) programs"
 
 clean:
-	rm -rf $(BUILDDIR) $(LIB)
 	@for d in $(PROG_DIRS); do $(MAKE) --no-print-directory -C $$d clean 2>/dev/null; done
