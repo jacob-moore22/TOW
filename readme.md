@@ -1,6 +1,6 @@
 # Numerical Recipes: Fortran 77 to Performance-Portable C++ with MATAR
 
-This repository stores the classic Numerical Recipes examples in Fortran 77 alongside their performance-portable C++ equivalents built with [MATAR](https://github.com/lanl/MATAR). It serves as a testbed for creating an Agentic AI system that converts legacy Fortran code into modern, performance-portable C++ using Kokkos-backed data structures.
+This repository stores the classic Numerical Recipes examples in Fortran 77 alongside their performance-portable C++ equivalents built with [MATAR](https://github.com/lanl/MATAR). It serves as a testbed for creating an Agentic AI system that converts legacy Fortran code into modern, performance-portable C++ using MATAR's data structures and parallel dispatch macros.
 
 ## Repository Structure
 
@@ -31,9 +31,10 @@ nrf77/
 │   ├── 02_linear_algebra/
 │   ├── ...                                # Mirrors fortran/ layout
 │   └── 19_partial_differential_equations/
+├── MATAR_LLM_CONTEXT.md  # Comprehensive MATAR API and conversion reference
 ├── readme.md
-├── readme.doc        # Original Numerical Recipes diskette documentation
-└── names.doc         # Original file listing
+├── readme.doc             # Original Numerical Recipes diskette documentation
+└── names.doc              # Original file listing
 ```
 
 ## Chapter Index
@@ -61,16 +62,102 @@ nrf77/
 
 ## About MATAR
 
-[MATAR](https://github.com/lanl/MATAR) is a C++ library for simple, fast, and memory-efficient multi-dimensional data representations that are portable across CPUs and GPUs via Kokkos. Each C++ file under `matarized/` will use MATAR's data types (CArray, FMatrix, ViewCArray, etc.) to replace Fortran arrays and achieve performance portability.
+[MATAR](https://github.com/lanl/MATAR) (Multi-dimensional Arrays, Tensors, And Ragged data structures) is a header-only C++ library that provides performance-portable multi-dimensional data structures, parallel loop macros, and reduction operations. MATAR supports CPU serial, OpenMP, Pthreads, CUDA, and HIP backends from a single source code — the developer writes to MATAR's API and the backend is selected at build time. Under the hood MATAR can use Kokkos for device execution, but user code interacts exclusively with MATAR types and macros.
+
+### Data Structure Taxonomy
+
+MATAR types are named along four axes:
+
+| Axis | Options | Meaning |
+| ---- | ------- | ------- |
+| **Layout** | `C` / `F` | Row-major (C-style) or column-major (Fortran-style) |
+| **Index base** | `Array` / `Matrix` | 0-based `[0, N)` or 1-based `[1, N]` |
+| **Residence** | `Host` / `Device` / `Dual` | CPU-only, device-only, or both with explicit sync |
+| **Ownership** | (none) / `View` | Allocates memory or wraps an existing pointer |
+
+These combine into names like `CArrayDevice`, `FMatrixDual`, `ViewCArrayHost`, etc. For Fortran interoperability the key types are `FMatrixDevice` and `ViewFMatrixDual` — column-major, 1-based, matching Fortran's native layout.
+
+### Parallel Dispatch
+
+| Macro | Range Style | Purpose |
+| ----- | ----------- | ------- |
+| `FOR_ALL` | Half-open `[lo, hi)` | Parallel loop (1D/2D/3D) |
+| `DO_ALL` | Inclusive `[lo, hi]` | Parallel loop for 1-based indexing |
+| `FOR_REDUCE_SUM/MAX/MIN/PRODUCT` | Half-open | Parallel reductions |
+| `DO_REDUCE_SUM/MAX/MIN` | Inclusive | Parallel reductions for 1-based indexing |
+| `RUN` | Single iteration | Execute once on device |
+
+All MATAR programs require `MATAR_INITIALIZE` / `MATAR_FINALIZE` bracketing, and `MATAR_FENCE()` between kernels that have a data dependency.
+
+### Comprehensive Reference
+
+See [`MATAR_LLM_CONTEXT.md`](MATAR_LLM_CONTEXT.md) for the full API reference, including detailed construction patterns, sparse/ragged types, hierarchical parallelism, host/device transfer rules, fence placement, MPI communication plans, and device kernel constraints.
 
 ## Conversion Approach
 
-Each Fortran subroutine in `fortran/<chapter>/<name>.f` has a corresponding C++ file at `matarized/<chapter>/<name>.cpp`. The conversion targets:
+Each Fortran subroutine in `fortran/<chapter>/<name>.f` has a corresponding C++ file at `matarized/<chapter>/<name>.cpp`. The conversion follows a systematic process:
 
-1. Replace Fortran arrays with MATAR types (CArray, FMatrix, etc.)
-2. Replace DO loops with Kokkos parallel dispatch where beneficial
-3. Preserve numerical correctness against the original Fortran output
-4. Maintain the same algorithmic structure for traceability
+### 1. Data Structure Mapping
+
+| Fortran Pattern | MATAR Replacement | Notes |
+| --------------- | ----------------- | ----- |
+| `REAL*8 A(N,M)` | `FMatrixDevice<double>(N, M)` | Column-major, 1-based — preserves Fortran semantics |
+| `INTEGER A(N)` | `FMatrixDevice<int>(N)` | Or `CArrayDevice<int>(N)` when switching to 0-based |
+| Subroutine array argument | `ViewFMatrixDual<double>(ptr, N, M)` | Non-owning view wrapping the caller's memory |
+| `COMMON` block arrays | Struct of MATAR arrays or `Dual` types | Shared state across translation units |
+
+### 2. Loop Mapping
+
+| Fortran | MATAR | Notes |
+| ------- | ----- | ----- |
+| `DO i = 1, N` ... `ENDDO` | `DO_ALL(i, 1, N, { ... });` | Inclusive range, 1-based |
+| Nested `DO` with accumulator | `DO_REDUCE_SUM(i, 1, N, loc, { loc += ...; }, total);` | Parallel reduction |
+| `DO` with data dependency on inner dim | `DO_ALL` outer + plain `for` inner | Keep serial dimensions serial |
+
+### 3. Correctness and Synchronization
+
+- `MATAR_FENCE()` between kernels where the second reads data written by the first
+- `update_device()` after host writes, before device reads
+- `update_host()` after device writes, before host reads
+- Reduction results are available immediately (implicit fence)
+
+### 4. Algorithmic Preservation
+
+The conversions maintain the same algorithmic structure as the original Fortran for traceability. Numerical output is validated against the original Fortran `.dem` driver programs.
+
+## Build Configuration
+
+### CMake
+
+```cmake
+find_package(Matar REQUIRED)
+target_link_libraries(my_target matar)
+```
+
+### Backend Selection
+
+| Define | Backend |
+| ------ | ------- |
+| `HAVE_KOKKOS` | Enables MATAR's device/dual types and parallel macros (via Kokkos backend) |
+| `HAVE_CUDA` | CUDA GPU execution |
+| `HAVE_HIP` | AMD GPU execution |
+| `HAVE_OPENMP` | OpenMP threading |
+| `HAVE_THREADS` | Pthreads |
+
+Without a GPU backend, MATAR defaults to CPU execution (serial or OpenMP depending on build flags).
+
+### Running
+
+```bash
+# Serial
+./my_program
+
+# OpenMP
+export OMP_NUM_THREADS=8 && ./my_program
+
+# Threaded (HAVE_THREADS)
+./my_program --kokkos-threads=8
+```
 
 ## Original Sources
 
