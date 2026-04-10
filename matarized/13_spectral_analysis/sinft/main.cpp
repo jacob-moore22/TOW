@@ -4,46 +4,44 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
-#include <vector>
 #include <matar.h>
 #include "sinft.hpp"
 
 using namespace mtr;
 
 // Serial reference sinft (direct translation of Fortran)
-static void sinft_ref(std::vector<double>& y, int n)
+static void sinft_ref(DFMatrixKokkos<double>& y, int n)
 {
     double theta = 3.14159265358979 / static_cast<double>(n);
     double wr = 1.0, wi = 0.0;
     double wpr = -2.0 * std::sin(0.5 * theta) * std::sin(0.5 * theta);
     double wpi = std::sin(theta);
-    y[1] = 0.0;
+    y.host(1) = 0.0;
     int m = n / 2;
     for (int j = 1; j <= m; j++) {
         double wt = wr;
         wr = wr * wpr - wi * wpi + wr;
         wi = wi * wpr + wt * wpi + wi;
-        double y1 = wi * (y[j + 1] + y[n - j + 1]);
-        double y2 = 0.5 * (y[j + 1] - y[n - j + 1]);
-        y[j + 1] = y1 + y2;
-        y[n - j + 1] = y1 - y2;
+        double y1 = wi * (y.host(j + 1) + y.host(n - j + 1));
+        double y2 = 0.5 * (y.host(j + 1) - y.host(n - j + 1));
+        y.host(j + 1) = y1 + y2;
+        y.host(n - j + 1) = y1 - y2;
     }
-    // --- serial realft reference ---
     // Use MATAR realft via temporary device array
     DFMatrixKokkos<double> tmp(n);
-    for (int j = 1; j <= n; j++) tmp.host(j) = y[j];
+    for (int j = 1; j <= n; j++) tmp.host(j) = y.host(j);
     tmp.update_device();
     realft(tmp, m, 1);
     tmp.update_host();
-    for (int j = 1; j <= n; j++) y[j] = tmp.host(j);
+    for (int j = 1; j <= n; j++) y.host(j) = tmp.host(j);
 
     double sum = 0.0;
-    y[1] = 0.5 * y[1];
-    y[2] = 0.0;
+    y.host(1) = 0.5 * y.host(1);
+    y.host(2) = 0.0;
     for (int j = 1; j <= n - 1; j += 2) {
-        sum += y[j];
-        y[j] = y[j + 1];
-        y[j + 1] = sum;
+        sum += y.host(j);
+        y.host(j) = y.host(j + 1);
+        y.host(j + 1) = sum;
     }
 }
 
@@ -64,11 +62,11 @@ int main(int argc, char* argv[])
 
         // --- Test 1: MATAR sinft vs serial reference ---
         DFMatrixKokkos<double> y(n);
-        std::vector<double> y_ref(n + 1);
+        DFMatrixKokkos<double> y_ref(n);
         for (int j = 1; j <= n; j++) {
             double val = std::sin(PI * k_mode * j / n);
             y.host(j) = val;
-            y_ref[j] = val;
+            y_ref.host(j) = val;
         }
         y.update_device();
 
@@ -80,9 +78,9 @@ int main(int argc, char* argv[])
         std::printf("   j    MATAR        Reference\n");
         double max_err = 0.0;
         for (int j = 1; j <= n; j++) {
-            double err = std::fabs(y.host(j) - y_ref[j]);
+            double err = std::fabs(y.host(j) - y_ref.host(j));
             if (err > max_err) max_err = err;
-            std::printf("  %2d  %12.6f  %12.6f\n", j, y.host(j), y_ref[j]);
+            std::printf("  %2d  %12.6f  %12.6f\n", j, y.host(j), y_ref.host(j));
         }
         std::printf("\n  Max |MATAR - ref| = %.2e\n", max_err);
 

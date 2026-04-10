@@ -92,15 +92,15 @@ graph TD
 
 ### K1: DO 12  ITER=1,MAXIT
 
-- **Thread safety:** `safe`
-- **Recommended macro:** `DO_ALL`
-- **Notes:** None
+- **Thread safety:** `inherently_serial`
+- **Recommended macro:** plain `for` loop
+- **Notes:** Laguerre iteration — each step refines `x` based on the previous value. Classic iterative convergence with loop-carried dependency on `x`.
 
 ### K2: DO 11  J=M,1, step -1
 
-- **Thread safety:** `safe`
-- **Recommended macro:** `DO_ALL`
-- **Notes:** None
+- **Thread safety:** `inherently_serial`
+- **Recommended macro:** plain `for` loop
+- **Notes:** Horner's method — `b = x*b + a[j]`, `d = x*d + b`, `f = x*f + d`. Each step depends on the previous (loop-carried dependency on `b`, `d`, `f`). Parallelism for polynomial root-finding lives at the caller level (e.g., zroots finding all M roots independently).
 
 
 ### Thread-Safety Legend

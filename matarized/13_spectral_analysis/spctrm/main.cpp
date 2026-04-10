@@ -4,7 +4,6 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
-#include <vector>
 #include <matar.h>
 #include "spctrm.hpp"
 
@@ -22,9 +21,9 @@ int main(int argc, char* argv[])
         int total_samples = K * 4 * M;
 
         // Generate a sine wave at frequency bin 3
-        std::vector<double> signal(total_samples);
+        DCArrayKokkos<double> signal(total_samples);
         for (int i = 0; i < total_samples; i++)
-            signal[i] = std::sin(2.0 * PI * 3.0 * i / (2 * M));
+            signal.host(i) = std::sin(2.0 * PI * 3.0 * i / (2 * M));
 
         DFMatrixKokkos<double> p(M);
         DFMatrixKokkos<double> w1(4 * M);
@@ -38,7 +37,7 @@ int main(int argc, char* argv[])
         w2.update_device();
 
         int read_pos = 0;
-        spctrm(p, M, K, OVRLAP, w1, w2, signal.data(), read_pos);
+        spctrm(p, M, K, OVRLAP, w1, w2, signal, read_pos);
 
         p.update_host();
 

@@ -5,25 +5,21 @@
 //
 // b(1..n)  -- right-hand side
 // n        -- system size
-// asub     -- function computing asub(x, out) = A*x
-// atsub    -- function computing atsub(x, out) = A^T*x
+// asub     -- callable computing asub(x, out) = A*x
+// atsub    -- callable computing atsub(x, out) = A^T*x
 // x(1..n)  -- initial guess on input, solution on output
 // rsq      -- residual squared on output
-//
-// asub/atsub are std::function taking (DFMatrixKokkos<double>&, DFMatrixKokkos<double>&).
 
 #pragma once
 #include <cmath>
 #include <cstdio>
-#include <functional>
 #include <matar.h>
 
 using namespace mtr;
 
-using SparseMV = std::function<void(DFMatrixKokkos<double>&, DFMatrixKokkos<double>&)>;
-
+template<typename AsubFunc, typename AtsubFunc>
 inline void sparse(DFMatrixKokkos<double>& b, int n,
-                   SparseMV asub, SparseMV atsub,
+                   AsubFunc asub, AtsubFunc atsub,
                    DFMatrixKokkos<double>& x, double& rsq)
 {
     constexpr double EPS = 1.0e-6;

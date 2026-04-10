@@ -6,7 +6,7 @@
 // ovrlap:     true to overlap successive segments.
 // w1:         work array of at least 4*m elements (device).
 // w2:         work array of m elements (device).
-// input_data: host pointer to flat data array (all segments sequentially).
+// input_data: flat data array (0-based DCArrayKokkos, all segments sequentially).
 // read_pos:   in/out index into input_data (0-based, advanced by the routine).
 //
 // Parallelization:
@@ -23,7 +23,7 @@ using namespace mtr;
 inline void spctrm(DFMatrixKokkos<double>& p, int m, int k, bool ovrlap,
                    DFMatrixKokkos<double>& w1,
                    DFMatrixKokkos<double>& w2,
-                   const double* input_data, int& read_pos)
+                   DCArrayKokkos<double>& input_data, int& read_pos)
 {
     int mm  = 2 * m;
     int m4  = 4 * m;
@@ -47,7 +47,7 @@ inline void spctrm(DFMatrixKokkos<double>& p, int m, int k, bool ovrlap,
     // Helper: read m values from input_data into a DFMatrixKokkos (host→device)
     auto read_m = [&](DFMatrixKokkos<double>& buf) {
         for (int j = 1; j <= m; j++)
-            buf.host(j) = input_data[read_pos++];
+            buf.host(j) = input_data.host(read_pos++);
         buf.update_device();
     };
 
@@ -71,7 +71,7 @@ inline void spctrm(DFMatrixKokkos<double>& p, int m, int k, bool ovrlap,
             for (int joff = -1; joff <= 0; joff++) {
                 int start = joff + 2;
                 for (int pos = start; pos <= m4; pos += 2)
-                    w1.host(pos) = input_data[read_pos++];
+                    w1.host(pos) = input_data.host(read_pos++);
             }
             w1.update_device();
         }
